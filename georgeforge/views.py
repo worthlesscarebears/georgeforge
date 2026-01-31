@@ -22,7 +22,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 
 # Alliance Auth (External Libs)
-from eveuniverse.models import EveType
+from eve_sde.models import ItemType
 
 # George Forge
 from georgeforge.forms import BulkImportStoreItemsForm
@@ -49,15 +49,15 @@ def store(request: WSGIRequest) -> HttpResponse:
     """
 
     for_sale = (
-        ForSale.objects.select_related("eve_type__eve_group")
+        ForSale.objects.select_related("eve_type__group")
         .all()
-        .order_by("eve_type__eve_group__name")
+        .order_by("eve_type__group__name")
     )
 
     groups = [
         (key, list(l))
         for key, l in itertools.groupby(
-            for_sale, key=attrgetter("eve_type.eve_group.name")
+            for_sale, key=attrgetter("eve_type.group.name")
         )
     ]
     groups.sort(key=lambda pair: max(entry.price for entry in pair[1]), reverse=True)
@@ -506,8 +506,8 @@ def bulk_import_form(request: WSGIRequest) -> HttpResponse:
 
             for item in parsed:
                 try:
-                    eve_type = EveType.objects.filter(
-                        eve_group__eve_category_id__in=app_settings.GEORGEFORGE_CATEGORIES
+                    eve_type = ItemType.objects.filter(
+                        group__category_id__in=app_settings.GEORGEFORGE_CATEGORIES
                     ).get(name=item["Item Name"])
 
                     try:

@@ -36,7 +36,7 @@ def has_discord_linked(user):
 @register.filter
 def evetype_icon(eve_type, size=32):
     """Take an eve_type object and return an image HTML element of it's icon WITH an item level overlay"""
-    base_icon_url = eve_type.icon_url()
+    base_icon_url = f"https://images.evetech.net/types/{eve_type.id}/icon?size=64"
     pip = ""
     tl = ItemType.objects.get(id=eve_type.id).meta_group_id_raw
     if tl is None or tl == 1:
