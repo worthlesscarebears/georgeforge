@@ -29,7 +29,7 @@ class ForSaleAdmin(ManageStoreAdmin):
     """ """
 
     list_display = ["eve_type", "description", "deposit", "price"]
-    autocomplete_fields = ["eve_type"]
+    #autocomplete_fields = ["eve_type"]
 
 
 @admin.register(DeliverySystem)
@@ -37,7 +37,7 @@ class DeliverySystemAdmin(ManageStoreAdmin):
     """ """
 
     list_display = ["system", "enabled", "friendly_name"]
-    autocomplete_fields = ["system"]
+    #autocomplete_fields = ["system"]
 
 
 @admin.register(Order)
@@ -54,4 +54,4 @@ class OrderAdmin(ManageStoreAdmin):
         "estimated_delivery_date",
         "cart_session_id",
     ]
-    autocomplete_fields = ["eve_type"]
+    #autocomplete_fields = ["eve_type"]
