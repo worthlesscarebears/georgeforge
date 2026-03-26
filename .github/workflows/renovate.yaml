@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  
+
 jobs:
   renovate:
     runs-on: ubuntu-latest
