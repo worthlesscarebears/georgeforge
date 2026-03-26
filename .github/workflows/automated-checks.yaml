@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v26
       - uses: cachix/cachix-action@v14
         with:
