@@ -15,15 +15,19 @@ in
     pkgs.libmysqlclient
     pkgs-unstable.opencode
     pkgs.nixd
+    pkgs.djlint
   ];
 
   languages.nix.enable = true;
 
-  languages.python.enable = true;
-  languages.python.uv.enable = true;
-  languages.python.uv.sync.enable = true;
-  languages.python.uv.sync.allGroups = true;
-  languages.python.venv.enable = true;
+  languages.python = {
+    enable = true;
+    venv.enable = true;
+    uv = {
+      enable = true;
+      sync.enable = true;
+    };
+  };
 
   git-hooks.hooks = {
     black.enable = true;
@@ -43,14 +47,6 @@ in
     nixfmt.enable = true;
     prettier.enable = true;
     trufflehog.enable = true;
-  };
-
-  git-hooks.hooks.djlint = {
-    enable = true;
-    package = pkgs.djlint;
-    args = [ "--reformat" ];
-    entry = "python -m djlint";
-    types = [ "html" ];
   };
 
   devcontainer.enable = true;

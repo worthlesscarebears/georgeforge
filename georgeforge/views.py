@@ -56,9 +56,7 @@ def store(request: WSGIRequest) -> HttpResponse:
 
     groups = [
         (key, list(l))
-        for key, l in itertools.groupby(
-            for_sale, key=attrgetter("eve_type.group.name")
-        )
+        for key, l in itertools.groupby(for_sale, key=attrgetter("eve_type.group.name"))
     ]
     groups.sort(key=lambda pair: max(entry.price for entry in pair[1]), reverse=True)
 

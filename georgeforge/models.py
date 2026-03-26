@@ -3,6 +3,7 @@ App Models
 """
 
 # Third Party
+import app_settings
 from invoices.models import Invoice
 
 # Django
@@ -13,7 +14,8 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 # Alliance Auth (External Libs)
-from eve_sde.models import SolarSystem, ItemType
+from eve_sde.models import ItemType, SolarSystem
+
 
 class General(models.Model):
     """Meta model for app permissions"""

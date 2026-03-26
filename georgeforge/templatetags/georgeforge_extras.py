@@ -1,12 +1,12 @@
 """Template tags for georgeforge"""
 
-# Third Party
-# eve_sde
-from eve_sde.models import ItemType
-
 # Django
 from django import template
 from django.utils.translation import gettext_lazy as _
+
+# Alliance Auth (External Libs)
+# eve_sde
+from eve_sde.models import ItemType
 
 # George Forge
 from georgeforge import app_settings

@@ -13,7 +13,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("eveuniverse", "0010_alter_eveindustryactivityduration_eve_type_and_more"),
     ]
 
     operations = [
