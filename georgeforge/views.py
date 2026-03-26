@@ -22,7 +22,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 
 # Alliance Auth (External Libs)
-from eveuniverse.models import EveSolarSystem, EveType
+from eve_sde.models import ItemType
 
 # George Forge
 from georgeforge.forms import BulkImportStoreItemsForm
@@ -49,16 +49,14 @@ def store(request: WSGIRequest) -> HttpResponse:
     """
 
     for_sale = (
-        ForSale.objects.select_related("eve_type__eve_group")
+        ForSale.objects.select_related("eve_type__group")
         .all()
-        .order_by("eve_type__eve_group__name")
+        .order_by("eve_type__group__name")
     )
 
     groups = [
         (key, list(l))
-        for key, l in itertools.groupby(
-            for_sale, key=attrgetter("eve_type.eve_group.name")
-        )
+        for key, l in itertools.groupby(for_sale, key=attrgetter("eve_type.group.name"))
     ]
     groups.sort(key=lambda pair: max(entry.price for entry in pair[1]), reverse=True)
 
@@ -135,10 +133,15 @@ def cart_checkout_api(request: WSGIRequest) -> JsonResponse:
         )
 
     try:
-        deliverysystem = EveSolarSystem.objects.get(id=deliverysystem_id)
-    except EveSolarSystem.DoesNotExist:
+        deliverysystem = (
+            DeliverySystem.objects.select_related("system")
+            .get(system_id=deliverysystem_id, enabled=True)
+            .system
+        )
+    except DeliverySystem.DoesNotExist:
         return JsonResponse(
-            {"success": False, "error": "Invalid delivery system"}, status=400
+            {"success": False, "error": "Invalid or disabled delivery system"},
+            status=400,
         )
 
     cart_session_id = str(uuid.uuid4())
@@ -401,10 +404,15 @@ def order_update_system(request: WSGIRequest, order_id: int) -> JsonResponse:
         )
 
     try:
-        deliverysystem = EveSolarSystem.objects.get(id=system_id)
-    except EveSolarSystem.DoesNotExist:
+        deliverysystem = (
+            DeliverySystem.objects.select_related("system")
+            .get(system_id=system_id, enabled=True)
+            .system
+        )
+    except DeliverySystem.DoesNotExist:
         return JsonResponse(
-            {"success": False, "error": "Delivery system not found"}, status=404
+            {"success": False, "error": "Invalid or disabled delivery system"},
+            status=400,
         )
 
     order.deliverysystem = deliverysystem
@@ -496,15 +504,45 @@ def bulk_import_form(request: WSGIRequest) -> HttpResponse:
 
             for item in parsed:
                 try:
-                    eve_type = EveType.objects.filter(
-                        eve_group__eve_category_id__in=app_settings.GEORGEFORGE_CATEGORIES
+                    eve_type = ItemType.objects.filter(
+                        group__category_id__in=app_settings.GEORGEFORGE_CATEGORIES
                     ).get(name=item["Item Name"])
+
+                    try:
+                        price_val = float(item["Price"])
+                        deposit_val = float(item["Deposit"])
+                    except (ValueError, TypeError):
+                        messages.warning(
+                            request,
+                            _("%(name)s has invalid price or deposit value")
+                            % {"name": item["Item Name"]},
+                        )
+                        had_error += 1
+                        continue
+
+                    if price_val <= 0:
+                        messages.warning(
+                            request,
+                            _("%(name)s price must be greater than zero")
+                            % {"name": item["Item Name"]},
+                        )
+                        had_error += 1
+                        continue
+
+                    if deposit_val < 0:
+                        messages.warning(
+                            request,
+                            _("%(name)s deposit cannot be negative")
+                            % {"name": item["Item Name"]},
+                        )
+                        had_error += 1
+                        continue
 
                     ForSale.objects.create(
                         eve_type=eve_type,
                         description=item["Description"],
-                        price=item["Price"],
-                        deposit=item["Deposit"],
+                        price=price_val,
+                        deposit=deposit_val,
                     )
                 except ObjectDoesNotExist:
                     messages.warning(

@@ -13,7 +13,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 # Alliance Auth (External Libs)
-from eveuniverse.models import EveSolarSystem, EveType
+from eve_sde.models import ItemType, SolarSystem
 
 # George Forge
 from georgeforge import app_settings
@@ -40,7 +40,7 @@ class ForSale(models.Model):
         default_permissions = ()
 
     eve_type = models.ForeignKey(
-        EveType,
+        ItemType,
         verbose_name=_("EVE Type"),
         on_delete=models.CASCADE,
         limit_choices_to={"published": 1},
@@ -76,7 +76,7 @@ class DeliverySystem(models.Model):
         default_permissions = ()
 
     system = models.ForeignKey(
-        EveSolarSystem,
+        SolarSystem,
         verbose_name=_("Solar System"),
         on_delete=models.CASCADE,
     )
@@ -154,7 +154,7 @@ class Order(models.Model):
     )
 
     eve_type = models.ForeignKey(
-        EveType,
+        ItemType,
         verbose_name=_("EVE Type"),
         on_delete=models.CASCADE,
         limit_choices_to={"published": 1},
@@ -179,7 +179,7 @@ class Order(models.Model):
     )
 
     deliverysystem = models.ForeignKey(
-        EveSolarSystem,
+        SolarSystem,
         verbose_name=_("Delivery System"),
         on_delete=models.CASCADE,
     )

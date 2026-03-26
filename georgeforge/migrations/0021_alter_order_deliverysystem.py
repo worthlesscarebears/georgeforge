@@ -8,7 +8,6 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("eveuniverse", "0010_alter_eveindustryactivityduration_eve_type_and_more"),
         (
             "georgeforge",
             "0001_squashed_0020_alter_order_deposit_alter_order_paid_and_more",

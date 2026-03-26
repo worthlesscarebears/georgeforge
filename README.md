@@ -25,11 +25,10 @@ ORDER_DEPOSIT_INSTRUCTIONS = "Please send your deposit to Character Name"
 
 We depend on
 [django-eveonline-sde](https://github.com/Solar-Helix-Independent-Transport/django-eveonline-sde)
-so follow those instructions. Also for now also django-eveuniverse. Also corptools
+so follow those instructions. Also corptools
 and invoices.
 
 ```bash
 python manage.py migrate
 python manage.py collectstatic --no-input
-python manage.py georgeforge_eveuniverse_load
 ```
