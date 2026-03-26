@@ -3,7 +3,6 @@ App Models
 """
 
 # Third Party
-import app_settings
 from invoices.models import Invoice
 
 # Django
@@ -15,6 +14,9 @@ from django.utils.translation import gettext_lazy as _
 
 # Alliance Auth (External Libs)
 from eve_sde.models import ItemType, SolarSystem
+
+# George Forge
+from georgeforge import app_settings
 
 
 class General(models.Model):
