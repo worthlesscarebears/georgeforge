@@ -238,7 +238,7 @@ wheels = [
 
 [[package]]
 name = "allianceauth-discordbot"
-version = "4.1.0"
+version = "5.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "allianceauth" },
@@ -247,9 +247,9 @@ dependencies = [
     { name = "py-cord" },
     { name = "redis" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c0/d0/0dbc101be777f3a0824eb43ad27ba31cee60665a8f04d9a090d39e43eb9c/allianceauth_discordbot-4.1.0.tar.gz", hash = "sha256:20a116b581439738e336ba348c4b456612a7aa68f08d262f2925751b2c413e50", size = 63419, upload-time = "2025-06-03T13:38:57.005Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5b/c3/0e03e6bf2124b9ac669d7ef61880d08bdd4fd136440e31e9d322b82722f1/allianceauth_discordbot-5.0.0.tar.gz", hash = "sha256:b974f0fed92123786afdf63e42e301f5b09479cababccfd6e5a6928a7b950a42", size = 64323, upload-time = "2026-03-08T10:52:19.22Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/73/cb/00ba129d6212ad0dacd0b0e2ef0f7b3404c090190c7af47d80e7d0d5d0f4/allianceauth_discordbot-4.1.0-py3-none-any.whl", hash = "sha256:713b0b67dbf87b3599e316bbecbbe333ba57b60a6c228af778da9d5192d1f3c9", size = 75845, upload-time = "2025-06-03T13:38:52.775Z" },
+    { url = "https://files.pythonhosted.org/packages/01/33/a9b3077640b69e1c347c98dfd0e710d8446e0cfe24b347f143fb9af83a7e/allianceauth_discordbot-5.0.0-py3-none-any.whl", hash = "sha256:016a1493252e2fe68d346533b68a410290637e38c2246d828711dafb3e8bf435", size = 76464, upload-time = "2026-03-08T10:52:17.874Z" },
 ]
 
 [[package]]
@@ -278,7 +278,7 @@ webhook = [
 requires-dist = [
     { name = "allianceauth", specifier = ">=4,<5" },
     { name = "allianceauth-corptools", specifier = ">=2.5.5" },
-    { name = "allianceauth-discordbot", marker = "extra == 'discord'", specifier = ">=4,<5" },
+    { name = "allianceauth-discordbot", marker = "extra == 'discord'", specifier = ">=5,<6" },
     { name = "allianceauth-invoices", specifier = ">=0.1.7" },
     { name = "django-eveonline-sde", specifier = ">=0.0.1a1,<1" },
     { name = "django-stubs", marker = "extra == 'dev'" },
@@ -1135,7 +1135,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
