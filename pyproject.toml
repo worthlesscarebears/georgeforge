@@ -42,7 +42,7 @@ dependencies = [
 [project.optional-dependencies]
 discord = [
     "py-cord<3,>=2",
-    "allianceauth-discordbot<5,>=4",
+    "allianceauth-discordbot<6,>=5",
 ]
 webhook = [
     "py-cord<3,>=2",
