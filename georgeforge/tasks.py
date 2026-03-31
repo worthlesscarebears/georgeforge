@@ -236,7 +236,7 @@ def send_order_webhook(order_pk, updated=False, update_type=0):
                 )
                 embed.add_field(
                     name="Type",
-                    value=f"```{order.eve_type.eve_group.name}```",
+                    value=f"```{order.eve_type.group.name}```",
                     inline=True,
                 )
                 embed.add_field(
