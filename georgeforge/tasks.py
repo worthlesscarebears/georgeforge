@@ -286,7 +286,7 @@ def check_invoice_status(self):
             send_order_webhook(order.id, True, 1)
             continue
         if inv.paid:
-            order.paid += inv.amount
+            order.paid += inv.payment.amount
             order.status = Order.OrderStatus.DEPOSIT_RECIEVED
             order.save()
             send_order_webhook(order.id, True)

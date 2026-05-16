@@ -199,10 +199,14 @@ def cart_checkout_api(request: WSGIRequest) -> JsonResponse:
         messages.success(request, _(deposit_instructions))
 
     for order in orders:
-        if not app_settings.GEORGEFORGE_ORDER_PENDING_DEFAULT:
-            order.status = Order.OrderStatus.AWAITING_DEPOSIT
-            order.save()
-            send_order_invoice(order)
+        if (not app_settings.GEORGEFORGE_ORDER_PENDING_DEFAULT):
+            if total_deposit == 0:
+                order.status = Order.OrderStatus.DEPOSIT_RECIEVED
+                order.save()
+            else:
+                order.status = Order.OrderStatus.AWAITING_DEPOSIT
+                order.save()
+                send_order_invoice(order)
         send_order_webhook.delay(order.pk)
         send_statusupdate_dm(order)
 
