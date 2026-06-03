@@ -172,6 +172,12 @@ def send_update_to_webhook(content=None, embed=None):
         logger.debug(f"Got status code {r.status_code} after sending ping")
         try:
             r.raise_for_status()
+        except HTTPError as e:
+            if r.status_code == 429: #Handle webhook rate-limit (5/1s as of testing 2026/6/3)
+                send_update_to_webhook.retry(content=content, embed=embed,
+                                             exc=e, max_retries=3, countdown=2)
+            else:
+                logger.error(e, exc_info=1)
         except Exception as e:
             logger.error(e, exc_info=1)
 
