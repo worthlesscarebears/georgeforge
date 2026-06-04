@@ -152,7 +152,7 @@ def send_deliverydateupdate_dm(order):
             )
 
 
-@shared_task
+@shared_task(rate_limit="5/s")
 def send_update_to_webhook(content=None, embed=None):
     web_hook = app_settings.GEORGEFORGE_ADMIN_WEBHOOK
     if web_hook is not None:
@@ -172,7 +172,7 @@ def send_update_to_webhook(content=None, embed=None):
         logger.debug(f"Got status code {r.status_code} after sending ping")
         try:
             r.raise_for_status()
-        except HTTPError as e:
+        except requests.HTTPError as e:
             if r.status_code == 429: #Handle webhook rate-limit (5/1s as of testing 2026/6/3)
                 send_update_to_webhook.retry(content=content, embed=embed,
                                              exc=e, max_retries=3, countdown=2)
