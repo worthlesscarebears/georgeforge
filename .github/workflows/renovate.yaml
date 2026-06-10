@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   renovate:
-    runs-on: epsilon
+    runs-on: ubuntu-latest
     environment: 
       name: renovate
       deployment: false
