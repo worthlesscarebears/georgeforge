@@ -291,11 +291,15 @@ def check_invoice_status(self):
             order.save()
             send_order_webhook(order.id, True, 1)
             continue
-        if inv.paid:
+        if inv.paid and inv.payment != None:
             order.paid += inv.payment.amount
             order.status = Order.OrderStatus.DEPOSIT_RECIEVED
             order.save()
             send_order_webhook(order.id, True)
+        elif inv.paid and inv.payment is None:
+            order.status = Order.OrderStatus.DEPOSIT_RECIEVED
+            order.save()
+            send_order_webhook(order.id, True, 1)
 
 
 def send_order_invoice(order):
