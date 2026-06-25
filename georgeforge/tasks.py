@@ -173,9 +173,12 @@ def send_update_to_webhook(content=None, embed=None):
         try:
             r.raise_for_status()
         except requests.HTTPError as e:
-            if r.status_code == 429: #Handle webhook rate-limit (5/1s as of testing 2026/6/3)
-                send_update_to_webhook.retry(content=content, embed=embed,
-                                             exc=e, max_retries=3, countdown=2)
+            if (
+                r.status_code == 429
+            ):  # Handle webhook rate-limit (5/1s as of testing 2026/6/3)
+                send_update_to_webhook.retry(
+                    content=content, embed=embed, exc=e, max_retries=3, countdown=2
+                )
             else:
                 logger.error(e, exc_info=1)
         except Exception as e:
@@ -291,7 +294,7 @@ def check_invoice_status(self):
             order.save()
             send_order_webhook(order.id, True, 1)
             continue
-        if inv.paid and inv.payment != None:
+        if inv.paid and inv.payment is not None:
             order.paid += inv.payment.amount
             order.status = Order.OrderStatus.DEPOSIT_RECIEVED
             order.save()
