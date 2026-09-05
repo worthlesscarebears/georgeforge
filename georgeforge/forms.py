@@ -29,7 +29,7 @@ class BulkImportStoreItemsForm(forms.Form):
     import_mode = forms.ChoiceField(
         label=_("Import Mode"),
         choices=IMPORT_MODE_CHOICES,
-        initial=MODE_CLEAR_AND_INSERT,
+        initial=MODE_ADDITIVE,
         widget=forms.RadioSelect,
     )
 
