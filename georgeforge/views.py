@@ -495,6 +495,10 @@ def bulk_import_form(request: WSGIRequest) -> HttpResponse:
 
         if form.is_valid():
             data = form.cleaned_data["data"]
+            non_destructive = (
+                form.cleaned_data["import_mode"]
+                == BulkImportStoreItemsForm.MODE_ADDITIVE
+            )
             parsed = [
                 row
                 for row in csv.DictReader(
@@ -502,7 +506,9 @@ def bulk_import_form(request: WSGIRequest) -> HttpResponse:
                     fieldnames=["Item Name", "Description", "Price", "Deposit"],
                 )
             ]
-            ForSale.objects.all().delete()
+
+            if not non_destructive:
+                ForSale.objects.all().delete()
 
             had_error = 0
 
@@ -542,11 +548,13 @@ def bulk_import_form(request: WSGIRequest) -> HttpResponse:
                         had_error += 1
                         continue
 
-                    ForSale.objects.create(
+                    ForSale.objects.update_or_create(
                         eve_type=eve_type,
-                        description=item["Description"],
-                        price=price_val,
-                        deposit=deposit_val,
+                        defaults={
+                            "description": item["Description"],
+                            "price": price_val,
+                            "deposit": deposit_val,
+                        },
                     )
                 except ObjectDoesNotExist:
                     messages.warning(
