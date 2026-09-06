@@ -520,9 +520,9 @@ def bulk_import_form(request: WSGIRequest) -> HttpResponse:
 
             for item in parsed:
                 try:
-                    eve_type = ItemType.objects.filter(
-                        group__category_id__in=app_settings.GEORGEFORGE_CATEGORIES
-                    ).get(name=item["Item Name"])
+                    eve_type = ItemType.objects.filter(published=1).get(
+                        name=item["Item Name"]
+                    )
 
                     try:
                         price_val = float(item["Price"])
