@@ -21,10 +21,6 @@ def webhook_available():
 # Name of this app as shown in the Auth sidebar, page titles
 GEORGEFORGE_APP_NAME = getattr(settings, "GEORGEFORGE_APP_NAME", "George Forge")
 
-GEORGEFORGE_CATEGORIES = getattr(
-    settings, "GEORGEFORGE_CATEGORIES", [4, 6, 7, 8, 18, 20, 63, 66]
-)
-
 GEORGEFORGE_ADMIN_WEBHOOK = getattr(settings, "GEORGEFORGE_ADMIN_WEBHOOK", None)
 
 GEORGEFORGE_ADMIN_WEBHOOK_ROLE_ID = getattr(
