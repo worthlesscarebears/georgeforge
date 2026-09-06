@@ -53,5 +53,6 @@ class OrderAdmin(ManageStoreAdmin):
         "notes",
         "estimated_delivery_date",
         "cart_session_id",
+        "invoice_ref",
     ]
     # autocomplete_fields = ["eve_type"]
