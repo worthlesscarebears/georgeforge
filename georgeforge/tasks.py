@@ -234,7 +234,7 @@ def send_order_webhook(order_pk, updated=False, update_type=0):
             case 0:  # DEPOSIT_PAID
                 embed.add_field(
                     name="Deposit paid!",
-                    value=f"```Invoice GF-DEP-{order.id} marked as paid.```",
+                    value=f"```Invoice {order.invoice_ref} marked as paid.```",
                     inline=False,
                 )
                 embed.add_field(
@@ -265,7 +265,7 @@ def send_order_webhook(order_pk, updated=False, update_type=0):
             case 1:  # ADMIN_INVOICE
                 embed.add_field(
                     name="Invoice missing - assuming this is an internal order!",
-                    value=f"```Invoice GF-DEP-{order.id} missing.```",
+                    value=f"```Invoice {order.invoice_ref} missing.```",
                     inline=False,
                 )
                 embed.add_field(
@@ -285,38 +285,80 @@ def send_order_webhook(order_pk, updated=False, update_type=0):
 @shared_task(bind=True, base=QueueOnce)
 def check_invoice_status(self):
     logger.info("Checking for complete Invoices")
-    for order in Order.objects.filter(status=Order.OrderStatus.AWAITING_DEPOSIT).all():
-        ref = f"GF-DEP-{str(order.id)}"
-        try:
-            inv = Invoice.objects.filter(invoice_ref=ref).get()
-        except Invoice.DoesNotExist:
-            order.status = Order.OrderStatus.DEPOSIT_RECIEVED
-            order.save()
-            send_order_webhook(order.id, True, 1)
+    session_ids = (
+        Order.objects.filter(status=Order.OrderStatus.AWAITING_DEPOSIT)
+        .values_list("cart_session_id", flat=True)
+        .distinct()
+    )
+    for session_id in session_ids:
+        orders = Order.objects.filter(
+            cart_session_id=session_id,
+            status=Order.OrderStatus.AWAITING_DEPOSIT,
+        )
+
+        # one invoice covers the entire cart session (i.e. the whole order)
+        inv = Invoice.objects.filter(invoice_ref=f"GF-DEP-{session_id}").first()
+        if inv is not None:
+            if inv.paid:
+                for order in orders:
+                    if inv.payment is not None:
+                        # the single payment covered the outstanding deposit
+                        # of every line item in the session
+                        if order.paid < order.deposit:
+                            order.paid = order.deposit
+                        order.status = Order.OrderStatus.DEPOSIT_RECIEVED
+                        order.save()
+                        send_order_webhook(order.id, True)
+                    else:
+                        order.status = Order.OrderStatus.DEPOSIT_RECIEVED
+                        order.save()
+                        send_order_webhook(order.id, True, 1)
             continue
-        if inv.paid and inv.payment is not None:
-            order.paid += inv.payment.amount
-            order.status = Order.OrderStatus.DEPOSIT_RECIEVED
-            order.save()
-            send_order_webhook(order.id, True)
-        elif inv.paid and inv.payment is None:
-            order.status = Order.OrderStatus.DEPOSIT_RECIEVED
-            order.save()
-            send_order_webhook(order.id, True, 1)
+
+        # Legacy fallback: before deposits moved to one invoice per cart
+        # session, every line item carried its own invoice keyed by order id.
+        # Keep old per-order semantics so in-flight orders survive the change.
+        for order in orders:
+            try:
+                legacy_inv = Invoice.objects.filter(
+                    invoice_ref=f"GF-DEP-{str(order.id)}"
+                ).get()
+            except Invoice.DoesNotExist:
+                order.status = Order.OrderStatus.DEPOSIT_RECIEVED
+                order.save()
+                send_order_webhook(order.id, True, 1)
+                continue
+            if legacy_inv.paid and legacy_inv.payment is not None:
+                order.paid += legacy_inv.payment.amount
+                order.status = Order.OrderStatus.DEPOSIT_RECIEVED
+                order.save()
+                send_order_webhook(order.id, True)
+            elif legacy_inv.paid and legacy_inv.payment is None:
+                order.status = Order.OrderStatus.DEPOSIT_RECIEVED
+                order.save()
+                send_order_webhook(order.id, True, 1)
 
 
 def send_order_invoice(order):
-    if order.deposit != 0 and order.deposit > order.paid:
-        isk = order.deposit - order.paid
-        due = timezone.now() + timedelta(days=app_settings.GEORGEFORGE_DEPOSIT_DUE)
-        character_id = order.user.profile.main_character.id
-        inv = Order.generate_invoice(character_id, order.id, isk, due)
-        if inv.amount < 1:
-            logger.error(
-                f"{order.deposit} - {order.paid} = {order.deposit - order.paid} or {isk}"
-            )
-            logger.error(print(inv))
-            return 0
-        else:
-            inv.save()
-            Order.ping_invoice(inv)
+    """Generate (or refresh) the single deposit invoice covering the entire
+    cart session (i.e. the whole order) that the given line item belongs to"""
+    orders = Order.objects.filter(
+        cart_session_id=order.cart_session_id,
+        status=Order.OrderStatus.AWAITING_DEPOSIT,
+    ).select_related("eve_type")
+
+    outstanding = sum(o.deposit - o.paid for o in orders)
+    if outstanding <= 0:
+        return 0
+
+    due = timezone.now() + timedelta(days=app_settings.GEORGEFORGE_DEPOSIT_DUE)
+    character_id = order.user.profile.main_character.id
+    inv = Order.generate_invoice(character_id, orders, due)
+    if inv.amount < 1:
+        logger.error(
+            f"{outstanding} outstanding deposit for order session {order.cart_session_id} rounds to {inv.amount}"
+        )
+        return 0
+    else:
+        inv.save()
+        Order.ping_invoice(inv)

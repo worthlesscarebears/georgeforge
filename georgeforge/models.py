@@ -199,6 +199,12 @@ class Order(models.Model):
         help_text=_("Estimated date when the order will be delivered"),
     )
 
+    @property
+    def invoice_ref(self):
+        """Reference of the deposit invoice covering the cart session
+        (i.e. the entire order) this line item belongs to"""
+        return f"GF-DEP-{self.cart_session_id}"
+
     @classmethod
     def ping_invoice(cls, inv):
         # ping the invoice to the user ( if we know them )
@@ -206,24 +212,62 @@ class Order(models.Model):
         inv.notify(message, title=app_settings.GEORGEFORGE_APP_NAME)
 
     @classmethod
-    def generate_invoice(cls, cid, oid, price, due_date):
-        msg = f"Deposit invoice for Order #{oid}"
-        ref = f"GF-DEP-{str(oid)}"
-        return Invoice.objects.create(
-            character_id=cid,
-            amount=round(price, -3),
-            invoice_ref=ref,
-            note=msg,
-            due_date=due_date,
+    def generate_invoice(cls, cid, orders, due_date):
+        """Create or update the single deposit invoice covering the given
+        line items (an entire cart session).
+
+        :param cid: character id to bill
+        :param orders: iterable of Order line items sharing a cart session
+        :param due_date: invoice due date
+        """
+        orders = list(orders)
+        session_id = orders[0].cart_session_id
+        ref = f"GF-DEP-{str(session_id)}"
+        order_refs = ", ".join(f"#{order.pk}" for order in orders)
+        line_items = ", ".join(
+            f"{order.quantity}x {order.eve_type.name}" for order in orders
         )
+        msg = f"Deposit invoice for Order(s) {order_refs} ({line_items})"
+        amount = round(sum(order.deposit - order.paid for order in orders), -3)
+
+        try:
+            inv = Invoice.objects.get(invoice_ref=ref)
+        except Invoice.DoesNotExist:
+            return Invoice.objects.create(
+                character_id=cid,
+                amount=amount,
+                invoice_ref=ref,
+                note=msg,
+                due_date=due_date,
+            )
+        else:
+            # never touch an invoice that has already been paid
+            if not inv.paid:
+                inv.character_id = cid
+                inv.amount = amount
+                inv.note = msg
+                inv.due_date = due_date
+                inv.save()
+            return inv
 
     @classmethod
-    def cancel_invoice(cls, oid):
-        ref = f"GF-DEP-{str(oid)}"
-        try:
-            i = Invoice.objects.get(invoice_ref=ref)
-        except Invoice.DoesNotExist:
-            return True
-        else:
-            i.delete()
-        return True
+    def cancel_invoice(cls, order):
+        """Delete the deposit invoice covering the cart session the given
+        order (line item) belongs to.
+
+        Unpaid invoices are removed; paid ones are left alone. Callers can
+        regenerate the invoice for any remaining line items of the session
+        afterwards (see georgeforge.tasks.send_order_invoice).
+
+        :param order: an Order (line item) of the affected cart session
+        """
+        refs = [order.invoice_ref]
+        # include legacy per-line-item refs so older invoices get cleaned up too
+        refs.extend(
+            f"GF-DEP-{pk}"
+            for pk in cls.objects.filter(
+                cart_session_id=order.cart_session_id
+            ).values_list("pk", flat=True)
+        )
+        deleted, _ = Invoice.objects.filter(invoice_ref__in=refs, paid=False).delete()
+        return deleted > 0
