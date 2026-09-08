@@ -198,7 +198,7 @@ def send_order_webhook(order_pk, updated=False, update_type=0):
         )
         embed.add_field(
             name="Order Number",
-            value=f"```#{order.id}```",
+            value=f"```{order.id}```",
             inline=True,
         )
         embed.add_field(
@@ -213,16 +213,16 @@ def send_order_webhook(order_pk, updated=False, update_type=0):
         embed.add_field(name="Quantity", value=f"```{order.quantity}```", inline=True)
         embed.add_field(
             name="Price per Unit",
-            value=f"```{order.price:,.2f} ISK```",
+            value=f"```{order.price:,.2f}```",
             inline=True,
         )
         embed.add_field(
             name="Total Cost",
-            value=f"```{order.totalcost:,.2f} ISK```",
+            value=f"```{order.totalcost:,.2f}```",
             inline=True,
         )
         embed.add_field(
-            name="Deposit", value=f"```{order.deposit:,.2f} ISK```", inline=True
+            name="Deposit", value=f"```{order.deposit:,.2f}```", inline=True
         )
         embed.add_field(
             name="Delivery System",
