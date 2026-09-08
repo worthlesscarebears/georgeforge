@@ -193,34 +193,47 @@ def send_order_webhook(order_pk, updated=False, update_type=0):
     order = Order.objects.get(pk=order_pk)
     if not updated:
         embed = Embed(
-            title=f"New Ship Order: {order.quantity} x {order.eve_type.name}",
+            title=f"New Ship Order #{order.id}: {order.quantity} x {order.eve_type.name}",
             color=Color.blue(),
         )
         embed.add_field(
-            name="Purchaser",
-            value=order.user.profile.main_character.character_name,
+            name="Order Number",
+            value=f"```#{order.id}```",
             inline=True,
         )
-        embed.add_field(name="Quantity", value=str(order.quantity), inline=True)
+        embed.add_field(
+            name="Purchaser",
+            value=f"```{order.user.profile.main_character.character_name}```",
+            inline=True,
+        )
+        embed.add_field(name="Quantity", value=f"```{order.quantity}```", inline=True)
         embed.add_field(
             name="Price per Unit",
-            value=f"{order.price:,.2f} ISK",
+            value=f"```{order.price:,.2f} ISK```",
             inline=True,
         )
         embed.add_field(
             name="Total Cost",
-            value=f"{order.totalcost:,.2f} ISK",
+            value=f"```{order.totalcost:,.2f} ISK```",
             inline=True,
         )
-        embed.add_field(name="Deposit", value=f"{order.deposit:,.2f} ISK", inline=True)
         embed.add_field(
-            name="Delivery System", value=order.deliverysystem.name, inline=True
+            name="Deposit", value=f"```{order.deposit:,.2f} ISK```", inline=True
         )
-        embed.add_field(name="Status", value=order.get_status_display(), inline=True)
+        embed.add_field(
+            name="Delivery System",
+            value=f"```{order.deliverysystem.name}```",
+            inline=True,
+        )
+        embed.add_field(
+            name="Status", value=f"```{order.get_status_display()}```", inline=True
+        )
         if order.description:
-            embed.add_field(name="Description", value=order.description, inline=False)
+            embed.add_field(
+                name="Description", value=f"```{order.description}```", inline=False
+            )
         if order.notes:
-            embed.add_field(name="Notes", value=order.notes, inline=False)
+            embed.add_field(name="Notes", value=f"```{order.notes}```", inline=False)
     else:
         embed = Embed(title=f"Order #{order.id} updated!", color=Color.purple())
         embed.add_field(
