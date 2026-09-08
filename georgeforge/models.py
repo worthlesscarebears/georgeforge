@@ -2,6 +2,10 @@
 App Models
 """
 
+# Standard Library
+import base64
+import uuid
+
 # Third Party
 from invoices.models import Invoice
 
@@ -17,6 +21,21 @@ from eve_sde.models import ItemType, SolarSystem
 
 # George Forge
 from georgeforge import app_settings
+
+
+def generate_invoice_ref(session_id: str) -> str:
+    """Return the deposit invoice reference for a cart session.
+
+    The reference has to be entered into the EVE in-game wallet transfer
+    reason field, which silently truncates at 40 characters. A raw UUID
+    makes refs too long (GF-DEP- + 36 chars = 43), so compress the UUID
+    to unpadded base32 (26 chars) for a 33 character reference.
+    """
+    try:
+        raw = uuid.UUID(str(session_id)).bytes
+    except (ValueError, AttributeError, TypeError):
+        return f"GF-DEP-{session_id}"  # not a uuid, use it as-is
+    return f"GF-DEP-{base64.b32encode(raw).decode().rstrip('=')}"
 
 
 class General(models.Model):
@@ -203,7 +222,7 @@ class Order(models.Model):
     def invoice_ref(self):
         """Reference of the deposit invoice covering the cart session
         (i.e. the entire order) this line item belongs to"""
-        return f"GF-DEP-{self.cart_session_id}"
+        return generate_invoice_ref(self.cart_session_id)
 
     @classmethod
     def ping_invoice(cls, inv):
@@ -222,7 +241,7 @@ class Order(models.Model):
         """
         orders = list(orders)
         session_id = orders[0].cart_session_id
-        ref = f"GF-DEP-{str(session_id)}"
+        ref = generate_invoice_ref(session_id)
         order_refs = ", ".join(f"#{order.pk}" for order in orders)
         line_items = ", ".join(
             f"{order.quantity}x {order.eve_type.name}" for order in orders
