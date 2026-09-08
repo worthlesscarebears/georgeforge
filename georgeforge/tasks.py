@@ -17,7 +17,7 @@ from django.utils import timezone
 from allianceauth.services.tasks import QueueOnce
 
 # George Forge
-from georgeforge.models import Order
+from georgeforge.models import Order, generate_invoice_ref
 
 from . import app_settings
 
@@ -297,7 +297,9 @@ def check_invoice_status(self):
         )
 
         # one invoice covers the entire cart session (i.e. the whole order)
-        inv = Invoice.objects.filter(invoice_ref=f"GF-DEP-{session_id}").first()
+        inv = Invoice.objects.filter(
+            invoice_ref=generate_invoice_ref(session_id)
+        ).first()
         if inv is not None:
             if inv.paid:
                 for order in orders:
