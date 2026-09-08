@@ -206,6 +206,10 @@ def send_order_webhook(order_pk, updated=False, update_type=0):
             value=f"```{order.user.profile.main_character.character_name}```",
             inline=True,
         )
+        embed.add_field(name="Ship", value=f"```{order.eve_type.name}```", inline=True)
+        embed.add_field(
+            name="Ship Class", value=f"```{order.eve_type.group.name}```", inline=True
+        )
         embed.add_field(name="Quantity", value=f"```{order.quantity}```", inline=True)
         embed.add_field(
             name="Price per Unit",
