@@ -36,7 +36,7 @@ dependencies = [
     "allianceauth<6,>=5",
     "allianceauth-corptools>=2.5.5",
     "allianceauth-invoices>=0.1.7",
-    "django-eveonline-sde>=0.0.1a1,<1",
+    "django-eveonline-sde>=1,<2",
 ]
 
 [project.optional-dependencies]
