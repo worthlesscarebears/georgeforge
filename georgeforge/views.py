@@ -294,16 +294,40 @@ def order_update_status(request: WSGIRequest, order_id: int) -> JsonResponse:
     old_status = order.status
     order.status = status
     order.save()
+    updated_orders = [
+        {"pk": order.pk, "status": status, "display": order.get_status_display()}
+    ]
 
     if order.status != old_status:
-        send_statusupdate_dm(order)
-        if order.status == Order.OrderStatus.AWAITING_DEPOSIT:
-            send_order_invoice(order)
-        if order.status == Order.OrderStatus.REJECTED:
+        if order.status == Order.OrderStatus.DEPOSIT_RECIEVED:
+            # One invoice covers the checkout, so receiving the deposit on one
+            # line item applies to every line item still awaiting that deposit.
+            linked_orders = Order.objects.filter(
+                cart_session_id=order.cart_session_id,
+                status=Order.OrderStatus.AWAITING_DEPOSIT,
+            ).exclude(pk=order.pk)
+            for linked_order in linked_orders:
+                linked_order.status = Order.OrderStatus.DEPOSIT_RECIEVED
+                linked_order.save()
+                send_statusupdate_dm(linked_order)
+                updated_orders.append(
+                    {
+                        "pk": linked_order.pk,
+                        "status": linked_order.status,
+                        "display": linked_order.get_status_display(),
+                    }
+                )
+            send_statusupdate_dm(order)
             Order.cancel_invoice(order)
-            # regenerate the session invoice for any remaining line items;
-            # no-op if nothing is left awaiting a deposit
-            send_order_invoice(order)
+        else:
+            send_statusupdate_dm(order)
+            if order.status == Order.OrderStatus.AWAITING_DEPOSIT:
+                send_order_invoice(order)
+            if order.status == Order.OrderStatus.REJECTED:
+                Order.cancel_invoice(order)
+                # Regenerate the session invoice for any remaining line items;
+                # no-op if nothing is left awaiting a deposit.
+                send_order_invoice(order)
 
     logger.info(
         f"Updated order {order_id} status from {old_status} to {status} by {request.user}"
@@ -315,6 +339,7 @@ def order_update_status(request: WSGIRequest, order_id: int) -> JsonResponse:
             "pk": order_id,
             "newValue": status,
             "display": order.get_status_display(),
+            "updatedOrders": updated_orders,
         }
     )
 
