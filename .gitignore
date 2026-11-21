@@ -5,6 +5,7 @@
 .tox/
 htmlcov/
 node_modules/
+/scripts/
 
 *.log
 *.tmp

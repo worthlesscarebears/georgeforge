@@ -283,6 +283,17 @@ def _allocate_discount(discount_amount: Decimal, line_totals: list) -> list:
     return [min(share, total) for share, total in zip(shares, line_totals)]
 
 
+def _line_deposit(line: dict) -> Decimal:
+    """Deposit charged for a cart line.
+
+    The listing's deposit (per unit x quantity), capped at the line's
+    discounted total so a discount can never leave the deposit larger
+    than the line itself is worth.
+    """
+    order_total = line["line_total"] - line.get("discount_amount", Decimal("0"))
+    return min(line["line_deposit"], order_total)
+
+
 def _manager_order_target():
     """Resolve the configured manager-order character to its owning account.
 
@@ -367,7 +378,6 @@ def _checkout_context(request: WSGIRequest):
             order_user = target_user
 
     subtotal = sum(line["line_total"] for line in lines)
-    deposit_total = sum(line["line_deposit"] for line in lines)
 
     discount = _resolve_discount(order_user, cart, lines, subtotal)
 
@@ -394,7 +404,11 @@ def _checkout_context(request: WSGIRequest):
         )
         line["discount_amount"] = allocation
         line["total"] = line["line_total"] - allocation
+        # deposits are not discounted, but never exceed the line's total
+        line["deposit"] = _line_deposit(line)
         discount_total += allocation
+
+    deposit_total = sum(line["deposit"] for line in lines)
 
     voucher_code = (cart.get("voucher_code") or "").strip()
     selected_affiliation = None if voucher_code else cart.get("affiliation_id")
@@ -547,7 +561,7 @@ def _create_orders(
                 user=order_user,
                 price=line["for_sale"].price,
                 totalcost=line_total - allocation,
-                deposit=line["line_deposit"],
+                deposit=_line_deposit(line),
                 # only a line that actually took a discount has a "before" price
                 original_price=line_total if allocation > 0 else None,
                 discount_amount=allocation,
@@ -940,6 +954,8 @@ def order_update_quantity(request: WSGIRequest, order_id: int) -> JsonResponse:
 
     order.quantity = quantity
     order.totalcost = order.price * quantity
+    # a smaller quantity must not leave the deposit above the order total
+    order.deposit = min(order.deposit, order.totalcost)
     order.save()
 
     logger.info(f"Updated order {order_id} quantity to {quantity} by {request.user}")

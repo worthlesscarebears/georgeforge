@@ -530,7 +530,9 @@ class Order(models.Model):
             f"{order.quantity}x {order.eve_type.name}" for order in orders
         )
         msg = f"Deposit invoice for Order(s) {order_refs} ({line_items})"
-        amount = round(sum(order.deposit - order.paid for order in orders), -3)
+        outstanding = sum(order.deposit - order.paid for order in orders)
+        # rounding to whole thousands must never ask for more than is owed
+        amount = min(round(outstanding, -3), outstanding)
 
         try:
             inv = Invoice.objects.get(invoice_ref=ref)
