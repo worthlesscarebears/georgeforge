@@ -104,8 +104,11 @@
             </div>
         </div>
         <div id="cart-checkout" class="mt-4" style="display: none;">
-            <form id="checkout-form">
+            <form id="checkout-form"
+                  method="post"
+                  action="{% url 'georgeforge:checkout_prepare' %}">
                 {% csrf_token %}
+                <input type="hidden" name="cart_data" id="cart-data" value="" />
                 <div class="mb-3">
                     <label for="delivery-system" class="form-label">{% translate "Delivery System (for all items)" %}</label>
                     <select class="form-select" id="delivery-system" required>

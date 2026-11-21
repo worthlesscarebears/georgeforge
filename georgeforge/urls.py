@@ -10,6 +10,8 @@ app_name: str = "georgeforge"
 
 urlpatterns = [
     path("store", views.store, name="store"),
+    path("checkout", views.checkout, name="checkout"),
+    path("checkout/prepare", views.checkout_prepare, name="checkout_prepare"),
     path("orders", views.my_orders, name="my_orders"),
     path("orders/all", views.all_orders, name="all_orders"),
     path("api/cart/checkout", views.cart_checkout_api, name="cart_checkout_api"),

@@ -2,7 +2,6 @@
     "use strict";
 
     const CART_KEY = "georgeforge_cart";
-    const CHECKOUT_URL = "/georgeforge/api/cart/checkout";
 
     function getCart() {
         const cart = localStorage.getItem(CART_KEY);
@@ -295,64 +294,6 @@
         renderCart();
     }
 
-    function clearCart() {
-        localStorage.removeItem(CART_KEY);
-        updateCounter();
-        renderCart();
-    }
-
-    async function checkoutCart(formData) {
-        const cart = getCart();
-
-        if (cart.length === 0) {
-            showToast("Your cart is empty");
-            return;
-        }
-
-        const items = cart.map((item) => ({
-            for_sale_id: item.for_sale_id,
-            quantity: item.quantity,
-        }));
-
-        const payload = {
-            items: items,
-            deliverysystem_id: formData.deliverysystem_id,
-            notes: formData.notes || "",
-        };
-
-        try {
-            const response = await fetch(CHECKOUT_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": formData.csrf_token,
-                },
-                body: JSON.stringify(payload),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                clearCart();
-                closeCart();
-                if (data.deposit_instructions) {
-                    showToast(data.deposit_instructions);
-                    setTimeout(() => {
-                        window.location.href = "/georgeforge/orders";
-                    }, 5000);
-                } else {
-                    showToast("Order placed successfully!");
-                    window.location.href = "/georgeforge/orders";
-                }
-            } else {
-                showToast(`Error: ${data.error}`);
-            }
-        } catch (error) {
-            console.error("Checkout error:", error);
-            showToast("Error placing order");
-        }
-    }
-
     function init() {
         updateCounter();
 
@@ -391,25 +332,36 @@
 
         if (checkoutForm) {
             checkoutForm.addEventListener("submit", (e) => {
-                e.preventDefault();
-
                 const deliverysystemId =
                     document.getElementById("delivery-system").value;
                 const notes = document.getElementById("notes").value;
-                const csrfToken = document.querySelector(
-                    'input[name="csrfmiddlewaretoken"]',
-                ).value;
+                const cart = getCart();
+
+                if (cart.length === 0) {
+                    e.preventDefault();
+                    showToast("Your cart is empty");
+                    return;
+                }
 
                 if (!deliverysystemId) {
+                    e.preventDefault();
                     showToast("Please select a delivery location");
                     return;
                 }
 
-                checkoutCart({
+                const payload = {
+                    items: cart.map((item) => ({
+                        for_sale_id: item.for_sale_id,
+                        quantity: item.quantity,
+                    })),
                     deliverysystem_id: parseInt(deliverysystemId, 10),
-                    notes: notes,
-                    csrf_token: csrfToken,
-                });
+                    notes: notes || "",
+                };
+
+                // server takes over from here (session cart, all logic in Python)
+                // the local cart is kept until the order is actually placed
+                document.getElementById("cart-data").value =
+                    JSON.stringify(payload);
             });
         }
     }

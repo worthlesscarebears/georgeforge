@@ -35,6 +35,13 @@
             data-min="0"
             data-sort="{{ entry.paid }}">
             {{ entry.paid|intcomma }} / {{ entry.totalcost|intcomma }} ISK
+            {% if entry.discount_amount %}
+                <br />
+                <small class="text-success">
+                    {% translate "Discount" %}: -{{ entry.discount_amount|intcomma }} ISK
+                    {% if entry.voucher_code %}({{ entry.voucher_code.code }}){% elif entry.affiliation_discount %}({{ entry.affiliation_discount.name }}){% endif %}
+                </small>
+            {% endif %}
             {% if entry.deposit > entry.paid %}
                 <br />
                 <small class="text-warning">(Deposit: {{ entry.deposit|intcomma }} ISK)</small>
@@ -43,6 +50,13 @@
     {% else %}
         <td data-sort="{{ entry.paid }}">
             {{ entry.paid|intcomma }}/{{ entry.totalcost|intcomma }} ISK
+            {% if entry.discount_amount %}
+                <br />
+                <small class="text-success">
+                    {% translate "Discount" %}: -{{ entry.discount_amount|intcomma }} ISK
+                    {% if entry.voucher_code %}({{ entry.voucher_code.code }}){% elif entry.affiliation_discount %}({{ entry.affiliation_discount.name }}){% endif %}
+                </small>
+            {% endif %}
             {% if entry.deposit > entry.paid and entry.status == 20 %}
                 <br />
                 <b>Deposit due: {{ entry.deposit|intcomma }} ISK</b>

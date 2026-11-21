@@ -4,6 +4,11 @@
 {% load static %}
 {% load django_bootstrap5 %}
 {% block details %}
+    {% if clear_cart %}
+        <script>
+            localStorage.removeItem("georgeforge_cart");
+        </script>
+    {% endif %}
     {% include "georgeforge/partials/discord_notice.html" %}
     <h4>{% translate "In Progress Orders" %}</h4>
     <div class="table-responsive">
