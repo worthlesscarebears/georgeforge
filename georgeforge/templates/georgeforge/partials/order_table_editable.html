@@ -38,8 +38,18 @@
                 $(this).text(statusOptions[value]);
             },
             success: function(response, newValue) {
-                $(this).attr('data-sort', newValue);
-                $(this).text(statusOptions[newValue]);
+                if (response.updatedOrders) {
+                    response.updatedOrders.forEach(function(order) {
+                        const cell = $('tr[data-order-id="' + order.pk + '"] .editable-status');
+                        cell.attr('data-value', order.status);
+                        cell.data('value', order.status);
+                        cell.attr('data-sort', order.status);
+                        cell.text(order.display);
+                    });
+                } else {
+                    $(this).attr('data-sort', newValue);
+                    $(this).text(statusOptions[newValue]);
+                }
                 showToast('Status updated successfully');
             },
             validate: function(value) {
