@@ -1,0 +1,220 @@
+{% extends "georgeforge/base.html" %}
+{% load i18n %}
+{% load humanize %}
+{% load static %}
+{% load georgeforge_extras %}
+{% load django_bootstrap5 %}
+{% block details %}
+    {% include "georgeforge/partials/discord_notice.html" %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">{% translate "Checkout" %}</h4>
+        <a href="{% url 'georgeforge:store' %}" class="btn btn-outline-secondary btn-sm">{% translate "Back to store" %}</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover table-striped w-100">
+            <thead>
+                <tr>
+                    <th>{% translate "Item" %}</th>
+                    <th class="text-end">{% translate "Qty" %}</th>
+                    <th class="text-end">{% translate "Unit Price" %}</th>
+                    <th class="text-end">{% translate "Line Total" %}</th>
+                    <th class="text-end">{% translate "Discount" %}</th>
+                    <th class="text-end">{% translate "Total" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for line in lines %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="position-relative" style="width: 32px; height: 32px;">{{ line.for_sale.eve_type|evetype_icon:32|safe }}</div>
+                                <span>{{ line.for_sale.eve_type.name }}</span>
+                            </div>
+                        </td>
+                        <td class="text-end">{{ line.quantity }}</td>
+                        <td class="text-end">{{ line.for_sale.price|intcomma }} ISK</td>
+                        <td class="text-end">{{ line.line_total|intcomma }} ISK</td>
+                        <td class="text-end">
+                            {% if line.discount_amount %}-{{ line.discount_amount|intcomma }} ISK{% elif discount_scoped and not line.discount_eligible %}<span class="text-muted">{% translate "n/a" %}</span>{% else %}-{% endif %}
+                        </td>
+                        <td class="text-end fw-bold">{{ line.total|intcomma }} ISK</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <form method="post" action="{% url 'georgeforge:checkout' %}">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-lg-7">
+                <div class="card mb-3">
+                    <div class="card-header">{% translate "Discount" %}</div>
+                    <div class="card-body">
+                        {% if discount_error %}
+                            <div class="alert alert-danger mb-3" role="alert">{{ discount_error }}</div>
+                        {% endif %}
+                        {% if applied_label %}
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <strong>{% translate "Applied" %}:</strong>
+                                    {{ applied_label }}
+                                </div>
+                                <button type="submit"
+                                        name="action"
+                                        value="remove_discount"
+                                        class="btn btn-outline-danger btn-sm">{% translate "Remove" %}</button>
+                            </div>
+                            {% if discount_scoped %}
+                                <div class="text-muted small mb-3">
+                                    {% translate "Only the eligible items in your cart receive this discount." %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                        <div class="mb-3">
+                            <label for="voucher-code" class="form-label">{% translate "Voucher code" %}</label>
+                            <div class="input-group">
+                                <input type="text"
+                                       class="form-control"
+                                       id="voucher-code"
+                                       name="voucher_code"
+                                       value="{{ voucher_code }}"
+                                       maxlength="64"
+                                       autocomplete="off" />
+                                <button type="submit"
+                                        name="action"
+                                        value="apply_discount"
+                                        class="btn btn-outline-primary">{% translate "Apply" %}</button>
+                            </div>
+                        </div>
+                        {% if affiliation_options %}
+                            <div class="mb-1 fw-bold">{% translate "Corp / alliance discount" %}</div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input"
+                                           type="radio"
+                                           name="affiliation_discount"
+                                           id="aff-none"
+                                           value="none"
+                                           {% if not selected_affiliation %}checked{% endif %} />
+                                    <label class="form-check-label" for="aff-none">{% translate "None" %}</label>
+                                </div>
+                                {% for option in affiliation_options %}
+                                    <div class="form-check">
+                                        <input class="form-check-input"
+                                               type="radio"
+                                               name="affiliation_discount"
+                                               id="aff-{{ option.id }}"
+                                               value="{{ option.id }}"
+                                               {% if option.selected %}checked{% endif %} />
+                                        <label class="form-check-label" for="aff-{{ option.id }}">
+                                            {{ option.name }} ({{ option.display }})
+                                            &mdash; {% translate "save" %} {{ option.amount|intcomma }} ISK
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if not applied_label %}
+                                <button type="submit"
+                                        name="action"
+                                        value="apply_discount"
+                                        class="btn btn-outline-primary btn-sm">{% translate "Apply selection" %}</button>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header">{% translate "Delivery" %}</div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <strong>{% translate "System" %}:</strong> {{ deliverysystem.name }}
+                        </div>
+                        {% if notes %}
+                            <div>
+                                <strong>{% translate "Notes" %}:</strong> {{ notes }}
+                            </div>
+                        {% endif %}
+                        <div class="text-muted small mt-2">
+                            {% translate "Need to change this? Go back to the store and edit your cart." %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card mb-3">
+                    <div class="card-header">{% translate "Summary" %}</div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>{% translate "Subtotal" %}</span>
+                            <span>{{ subtotal|intcomma }} ISK</span>
+                        </div>
+                        {% if discount_total %}
+                            <div class="d-flex justify-content-between mb-2 text-success">
+                                <span>
+                                    {% translate "Discount" %}
+                                    {% if applied_label %}({{ applied_label }}){% endif %}
+                                </span>
+                                <span>-{{ discount_total|intcomma }} ISK</span>
+                            </div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between mb-2 fw-bold">
+                            <span>{% translate "Total" %}</span>
+                            <span>{{ grand_total|intcomma }} ISK</span>
+                        </div>
+                        <hr />
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>{% translate "Deposit" %}</span>
+                            <span>
+                                {% if deposit_total %}{{ deposit_total|intcomma }} ISK{% else %}-{% endif %}
+                            </span>
+                        </div>
+                        <div class="text-muted small">
+                            {% translate "Deposits are not affected by discounts." %}
+                        </div>
+                    </div>
+                </div>
+                {% if is_manager %}
+                    <div class="card mb-3">
+                        <div class="card-header">{% translate "Manager Options" %}</div>
+                        <div class="card-body">
+                            {% if manager_error %}
+                                <div class="alert alert-danger" role="alert">{{ manager_error }}</div>
+                            {% endif %}
+                            <div class="form-check">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       name="on_behalf"
+                                       id="on-behalf"
+                                       value="1"
+                                       {% if on_behalf %}checked{% endif %} />
+                                <label class="form-check-label" for="on-behalf">
+                                    {% if manager_character_name %}
+                                        {% blocktranslate %}Place order under {{ manager_character_name }}{% endblocktranslate %}
+                                    {% else %}
+                                        {% translate "Place order under the configured manager account" %}
+                                    {% endif %}
+                                </label>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                {% translate "With this set the order will go to Corp Spare Stock and skip invoicing." %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                <button type="submit"
+                        name="action"
+                        value="place_order"
+                        class="btn btn-primary w-100">{% translate "Place order" %}</button>
+            </div>
+        </div>
+    </form>
+{% endblock details %}
+{% block extra_css %}
+    {% include "bundles/datatables-css-bs5.html" %}
+    <style>
+        .pip {
+            display: block;
+            position: absolute;
+            top: 0px;
+        }
+    </style>
+{% endblock extra_css %}
