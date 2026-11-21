@@ -123,4 +123,4 @@ class OrderAdmin(ManageStoreAdmin):
         "invoice_ref",
     ]
     list_filter = ["status", "voucher_code", "affiliation_discount"]
-    autocomplete_fields = ["eve_type","user","deliverysystem"]
+    autocomplete_fields = ["eve_type"]
