@@ -36,3 +36,9 @@ GEORGEFORGE_DEPOSIT_DUE = getattr(settings, "GEORGEFORGE_DEPOSIT_DUE", 7)
 GEORGEFORGE_ORDER_DEPOSIT_INSTRUCTIONS = getattr(
     settings, "GEORGEFORGE_ORDER_DEPOSIT_INSTRUCTIONS", None
 )
+
+# Character ID of the account that the manager-only "Manager Options"
+# checkbox at checkout places orders under instead of the manager
+GEORGEFORGE_MANAGER_ORDER_CHARACTER_ID = getattr(
+    settings, "GEORGEFORGE_MANAGER_ORDER_CHARACTER_ID", 2124621080
+)

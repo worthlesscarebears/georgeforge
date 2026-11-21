@@ -23,6 +23,9 @@ from django.template.defaultfilters import pluralize
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
 
+# Alliance Auth
+from allianceauth.eveonline.models import EveCharacter
+
 # Alliance Auth (External Libs)
 from eve_sde.models import ItemType
 
@@ -280,6 +283,63 @@ def _allocate_discount(discount_amount: Decimal, line_totals: list) -> list:
     return [min(share, total) for share, total in zip(shares, line_totals)]
 
 
+def _manager_order_target():
+    """Resolve the configured manager-order character to its owning account.
+
+    Powers the manager-only "Manager Options" checkout checkbox, which
+    places an order under a fixed account instead of the manager.
+
+    Returns (user, character_name, error). user is None when the configured
+    character cannot be resolved; error is None when it resolves cleanly.
+    """
+    char_id = app_settings.GEORGEFORGE_MANAGER_ORDER_CHARACTER_ID
+    try:
+        char_id = int(char_id)
+    except (TypeError, ValueError):
+        logger.error(
+            "GEORGEFORGE_MANAGER_ORDER_CHARACTER_ID is not a valid character ID: %r",
+            char_id,
+        )
+        return None, None, _("Manager order character ID is misconfigured")
+
+    try:
+        character = EveCharacter.objects.select_related(
+            "character_ownership__user"
+        ).get(character_id=char_id)
+    except EveCharacter.DoesNotExist:
+        logger.error(
+            "GEORGEFORGE_MANAGER_ORDER_CHARACTER_ID character %s does not exist",
+            char_id,
+        )
+        return (
+            None,
+            None,
+            _("Manager order character %(id)s was not found") % {"id": char_id},
+        )
+
+    try:
+        user = character.character_ownership.user
+    except ObjectDoesNotExist:
+        logger.error("Manager order character %s is not owned by any user", char_id)
+        return (
+            None,
+            character.character_name,
+            _("Manager order character %(name)s is not owned by any user")
+            % {"name": character.character_name},
+        )
+
+    if not user.is_active:
+        logger.error("Manager order character %s owner account is disabled", char_id)
+        return (
+            None,
+            character.character_name,
+            _("The account owning manager order character %(name)s is disabled")
+            % {"name": character.character_name},
+        )
+
+    return user, character.character_name, None
+
+
 def _checkout_context(request: WSGIRequest):
     """Build the checkout page context from the session cart.
 
@@ -293,10 +353,23 @@ def _checkout_context(request: WSGIRequest):
     if error:
         return None, _(error)
 
+    # managers may tick "Manager Options" to place the order under the
+    # configured account instead of themselves
+    is_manager = request.user.has_perm("georgeforge.manage_store")
+    on_behalf = is_manager and bool(cart.get("on_behalf"))
+    manager_character_name = None
+    manager_error = None
+    order_user = request.user
+
+    if is_manager:
+        target_user, manager_character_name, manager_error = _manager_order_target()
+        if target_user is not None and on_behalf:
+            order_user = target_user
+
     subtotal = sum(line["line_total"] for line in lines)
     deposit_total = sum(line["line_deposit"] for line in lines)
 
-    discount = _resolve_discount(request.user, cart, lines, subtotal)
+    discount = _resolve_discount(order_user, cart, lines, subtotal)
 
     # only the applied discount's eligible lines share the discount
     eligible_ids = discount["eligible_ids"]
@@ -330,7 +403,7 @@ def _checkout_context(request: WSGIRequest):
     for affiliation in AffiliationDiscount.objects.filter(enabled=True).order_by(
         "name"
     ):
-        if not affiliation.user_qualifies(request.user):
+        if not affiliation.user_qualifies(order_user):
             continue
 
         option_ids_for_aff, option_subtotal = _eligible_subtotal(
@@ -385,6 +458,11 @@ def _checkout_context(request: WSGIRequest):
         "deliverysystem": deliverysystem,
         "notes": notes,
         "user_id": request.user.id,
+        "is_manager": is_manager,
+        "on_behalf": on_behalf,
+        "manager_character_name": manager_character_name,
+        "manager_error": manager_error,
+        "order_user": order_user,
     }
 
     return context, None
@@ -414,13 +492,48 @@ def _apply_discount_form(request: WSGIRequest) -> None:
     request.session[CHECKOUT_SESSION_KEY] = cart
 
 
+def _apply_manager_form(request: WSGIRequest) -> None:
+    """Store the manager on-behalf checkbox state in the session.
+
+    Ignored without manage_store, so a forged POST cannot move the order
+    to another account.
+    """
+    cart = request.session.get(CHECKOUT_SESSION_KEY)
+    if cart is None:
+        return
+
+    checked = request.POST.get("on_behalf") in {"1", "on", "true", "True"}
+    cart["on_behalf"] = bool(checked) and request.user.has_perm(
+        "georgeforge.manage_store"
+    )
+    request.session[CHECKOUT_SESSION_KEY] = cart
+
+
+def _append_manager_note(notes: str, manager) -> str:
+    """Append which manager placed an on-behalf order to the order notes."""
+    main_character = getattr(getattr(manager, "profile", None), "main_character", None)
+    name = main_character.character_name if main_character else manager.username
+    line = f"Placed by Manager: {name}"
+    return f"{notes}\n{line}" if notes else line
+
+
 def _create_orders(
-    request: WSGIRequest, lines: list, deliverysystem, notes: str, discount=None
+    request: WSGIRequest,
+    lines: list,
+    deliverysystem,
+    notes: str,
+    discount=None,
+    order_user=None,
 ) -> list:
-    """Create one Order per cart line, applying any discount allocation."""
+    """Create one Order per cart line, applying any discount allocation.
+
+    order_user defaults to the requesting user; managers placing an order
+    on behalf of the configured account pass that account's user instead.
+    """
     discount = discount or {}
     voucher = discount.get("voucher")
     affiliation = discount.get("affiliation")
+    order_user = order_user or request.user
 
     cart_session_id = str(uuid.uuid4())
     orders = []
@@ -431,7 +544,7 @@ def _create_orders(
 
         orders.append(
             Order.objects.create(
-                user=request.user,
+                user=order_user,
                 price=line["for_sale"].price,
                 totalcost=line_total - allocation,
                 deposit=line["line_deposit"],
@@ -454,13 +567,13 @@ def _create_orders(
     if voucher is not None:
         # one redemption covers the whole cart session
         VoucherRedemption.objects.create(
-            voucher=voucher, user=request.user, order=orders[0]
+            voucher=voucher, user=order_user, order=orders[0]
         )
 
     return orders
 
 
-def _finalise_cart(request: WSGIRequest, orders: list):
+def _finalise_cart(request: WSGIRequest, orders: list, on_behalf: bool = False):
     """Deposit message, status defaults, webhooks, DMs and deposit invoice.
 
     Returns the deposit instructions (or None).
@@ -468,7 +581,7 @@ def _finalise_cart(request: WSGIRequest, orders: list):
     total_deposit = sum(float(order.deposit) for order in orders)
     deposit_instructions = (
         app_settings.GEORGEFORGE_ORDER_DEPOSIT_INSTRUCTIONS
-        if total_deposit > 0
+        if total_deposit > 0 and not on_behalf
         else None
     )
 
@@ -476,7 +589,12 @@ def _finalise_cart(request: WSGIRequest, orders: list):
         messages.success(request, _(deposit_instructions))
 
     for order in orders:
-        if not app_settings.GEORGEFORGE_ORDER_PENDING_DEFAULT:
+        if on_behalf:
+            # manager orders placed under the configured account skip the
+            # deposit step entirely - no deposit invoice is ever sent
+            order.status = Order.OrderStatus.DEPOSIT_RECIEVED
+            order.save()
+        elif not app_settings.GEORGEFORGE_ORDER_PENDING_DEFAULT:
             order.status = (
                 Order.OrderStatus.DEPOSIT_RECIEVED
                 if total_deposit == 0
@@ -523,6 +641,8 @@ def checkout_prepare(request: WSGIRequest) -> HttpResponse:
         # keep any discount the user already applied to this cart
         "voucher_code": previous.get("voucher_code", ""),
         "affiliation_id": previous.get("affiliation_id"),
+        # keep any manager on-behalf selection for this cart
+        "on_behalf": previous.get("on_behalf", False),
     }
 
     return redirect("georgeforge:checkout")
@@ -544,6 +664,7 @@ def checkout(request: WSGIRequest) -> HttpResponse:
 
         if action in {"apply_discount", "place_order"}:
             _apply_discount_form(request)
+            _apply_manager_form(request)
 
         if action == "place_order":
             return _place_order(request)
@@ -565,18 +686,31 @@ def _place_order(request: WSGIRequest) -> HttpResponse:
         messages.error(request, error)
         return redirect("georgeforge:store")
 
+    if context["on_behalf"] and context["manager_error"]:
+        # never fall back to the manager's own account silently
+        messages.error(request, context["manager_error"])
+        return redirect("georgeforge:checkout")
+
     if context["discount_error"]:
         # the page re-renders with the inline discount error
         return redirect("georgeforge:checkout")
+
+    notes = context["notes"]
+    if context["on_behalf"]:
+        # record which manager actually placed the order
+        notes = _append_manager_note(notes, request.user)
 
     orders = _create_orders(
         request,
         context["lines"],
         context["deliverysystem"],
-        context["notes"],
+        notes,
         context["discount"],
+        order_user=context["order_user"],
     )
-    deposit_instructions = _finalise_cart(request, orders)
+    deposit_instructions = _finalise_cart(
+        request, orders, on_behalf=context["on_behalf"]
+    )
 
     messages.success(request, _("Your order has been placed!"))
     if deposit_instructions:

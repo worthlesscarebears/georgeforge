@@ -11,11 +11,14 @@ All are optional. The webhook can be unset.
 ```python
 # Georgeforge
 # Webhook to post orders to
-INDUSTRY_ADMIN_WEBHOOK = "https://discord.com/api/webhooks/1/abcd"
+GEORGEFORGE_ADMIN_WEBHOOK = "https://discord.com/api/webhooks/1/abcd"
 # Discord role ID to ping when a new order is placed
-INDUSTRY_ADMIN_WEBHOOK_ROLE_ID = 123456789
+GEORGEFORGE_ADMIN_WEBHOOK_ROLE_ID = 123456789
 # Deposit instructions shown to users when placing an order with a deposit
-ORDER_DEPOSIT_INSTRUCTIONS = "Please send your deposit to Character Name"
+GEORGEFORGE_ORDER_DEPOSIT_INSTRUCTIONS = "Please send your deposit to Character Name"
+# Character ID behind the manager-only "Manager Options" checkout checkbox,
+# which places an order under that account instead of the manager
+GEORGEFORGE_MANAGER_ORDER_CHARACTER_ID = 2124621080
 ```
 
 ## Installation
