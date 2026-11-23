@@ -531,6 +531,15 @@ def _append_manager_note(notes: str, manager) -> str:
     return f"{notes}\n{line}" if notes else line
 
 
+def _append_discount_note(notes: str, discount: dict) -> str:
+    """Append the applied voucher or affiliation discount to the order notes."""
+    applied = (discount or {}).get("voucher") or (discount or {}).get("affiliation")
+    if applied is None:
+        return notes
+    line = f"Discount: {applied} ({applied.discount_display})"
+    return f"{notes}\n{line}" if notes else line
+
+
 def _create_orders(
     request: WSGIRequest,
     lines: list,
@@ -713,6 +722,8 @@ def _place_order(request: WSGIRequest) -> HttpResponse:
     if context["on_behalf"]:
         # record which manager actually placed the order
         notes = _append_manager_note(notes, request.user)
+    # record which discount was used, if any (voucher or affiliation)
+    notes = _append_discount_note(notes, context["discount"])
 
     orders = _create_orders(
         request,
