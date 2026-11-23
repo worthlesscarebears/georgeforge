@@ -303,7 +303,7 @@ requires-dist = [
     { name = "allianceauth-corptools", specifier = ">=2.5.5" },
     { name = "allianceauth-discordbot", marker = "extra == 'discord'", specifier = ">=5,<6" },
     { name = "allianceauth-invoices", specifier = ">=0.1.7" },
-    { name = "django-eveonline-sde", specifier = ">=1,<2" },
+    { name = "django-eveonline-sde", specifier = ">=2,<3" },
     { name = "django-stubs", marker = "extra == 'dev'" },
     { name = "py-cord", marker = "extra == 'discord'", specifier = ">=2,<3" },
     { name = "py-cord", marker = "extra == 'webhook'", specifier = ">=2,<3" },
@@ -1015,9 +1015,10 @@ wheels = [
 
 [[package]]
 name = "django-eveonline-sde"
-version = "1.0.0"
+version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "brotli" },
     { name = "celery" },
     { name = "celery-once" },
     { name = "django-modeltranslation" },
@@ -1025,9 +1026,9 @@ dependencies = [
     { name = "httpx2", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "httpx2", version = "2.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c1/a7/61e3305850e049d75ee3ac1b3eee9f349290e64e6f0b8d5c56d712d358ff/django_eveonline_sde-1.0.0.tar.gz", hash = "sha256:be56fff6efa4bb3d436dc0ecd6782b1cc5ead5e1feeea20bcddfd203fc8c5f11", size = 212225, upload-time = "2026-11-05T11:42:42.715Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cc/48/bca15eaed7f5d165c068c8959d51224884757506f038e3ac92318816f976/django_eveonline_sde-2.0.0.tar.gz", hash = "sha256:87aed94acbf1912c62b32ae9e3993fd6346378a1fcd24f0cbf7247ccd6072471", size = 238604, upload-time = "2026-11-22T00:05:25.186Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/37/25/b9d2188db29f405b0c758a440b9329a347ef2fe35eeef9582246bec8d978/django_eveonline_sde-1.0.0-py3-none-any.whl", hash = "sha256:a9cfb22cf6c954799b5922906874feba4422a8f23294c3bce642f9038f83faf4", size = 267980, upload-time = "2026-11-05T11:42:41.275Z" },
+    { url = "https://files.pythonhosted.org/packages/92/ac/268f96686a4bdc16f523b8859b7db644b4e73e9e5ec2e0951b84a6b1f8f9/django_eveonline_sde-2.0.0-py3-none-any.whl", hash = "sha256:0841fd2e27d1b38cdafa8b446e98f0a2f25d7ec6bd598fa8cbfd31bc2ac77422", size = 313234, upload-time = "2026-11-22T00:05:24.053Z" },
 ]
 
 [[package]]
@@ -1044,15 +1045,15 @@ wheels = [
 
 [[package]]
 name = "django-modeltranslation"
-version = "0.19.17"
+version = "0.20.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a7/32/34f33d0a375087197e1e7b6e27a87332c3dfaa970cb38ec353b6198b855b/django_modeltranslation-0.19.17.tar.gz", hash = "sha256:13bd9cab4e4aed0bef5624c17a7da2ac8c5538f0650adbd89ce8c878cbef02fd", size = 77741, upload-time = "2025-09-14T10:14:36.05Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/b7/049969e77ff4825836c78312b3b82bd58f94162ffe20bc46500f98391731/django_modeltranslation-0.20.6.tar.gz", hash = "sha256:29eb584f017206a0bea5e2a44ae5da514ad6ebf1e43536ff7fed7df67b795b0c", size = 82542, upload-time = "2026-09-07T12:03:24.651Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/87/f8cf0626e502fd6fd996b8dc590985ed5002b63dfb4442f954670bd101b7/django_modeltranslation-0.19.17-py3-none-any.whl", hash = "sha256:fda198c08b4ede0c2fd09b795ab420a04c7b5a868315fdf4aade0d0a526c269f", size = 93423, upload-time = "2025-09-14T10:14:34.536Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/55/dfd72b735f50bb633409326311598d9a5bc861ee81ae3d137844ab903add/django_modeltranslation-0.20.6-py3-none-any.whl", hash = "sha256:913658af75510a4f71573441f267b5831a6034c524f917f337adc666a60fe724", size = 99206, upload-time = "2026-09-07T12:03:23.238Z" },
 ]
 
 [[package]]
